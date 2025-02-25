@@ -198,16 +198,30 @@ get_ipv6() {
 
 mask_ipv6() {
     local ipv6="$1"
-    
-    IFS=":" read -ra segments <<< "$ipv6"
-    for i in "${!segments[@]}"; do
-        if (( i > 1 && i < ${#segments[@]} - 2 )); then
-            segments[i]="****"
-        fi
-    done
+    local preserve="${2:-4}"  # Количество сегментов для сохранения, по умолчанию 4 (т.е. /64)
 
-    echo "${segments[*]}" | sed 's/ /:/g'
+    # Расширяем адрес до полного формата с помощью Python
+    local full_ipv6
+    full_ipv6=$(python3 -c "import ipaddress; print(ipaddress.ip_address('$ipv6').exploded)" 2>/dev/null)
+    if [ -z "$full_ipv6" ]; then
+        echo "Некорректный IPv6 адрес" >&2
+        return 1
+    fi
+
+    IFS=":" read -r -a segments <<< "$full_ipv6"
+    if (( preserve > ${#segments[@]} )); then
+        preserve=${#segments[@]}
+    fi
+
+    # Собираем префикс из первых $preserve сегментов
+    local prefix
+    prefix=$(IFS=:; echo "${segments[@]:0:$preserve}")
+    local prefix_len=$(( preserve * 16 ))
+    
+    # Выводим анонимизированный адрес в формате "префикс::/prefix_len"
+    echo "${prefix}::/${prefix_len}"
 }
+
 
 check_service() {
   local domain="$1"
