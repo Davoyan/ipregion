@@ -896,7 +896,8 @@ make_request() {
     --silent --compressed
     --retry-connrefused --retry-all-errors
     --retry "$CURL_RETRIES"
-    --max-time "$CURL_TIMEOUT"
+    --connect-timeout "$CURL_TIMEOUT"
+	--max-time "$CURL_TIMEOUT"
     --request "$method"
     -w '\n%{http_code}'
   )
