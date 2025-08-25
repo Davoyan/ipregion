@@ -1403,25 +1403,62 @@ print_legend() {
   echo
   printf "%s\n\n" "$(color HEADER 'Legend')"
   {
-    echo "$(color TABLE_HEADER 'Code')$separator$(color TABLE_HEADER 'Country')"
-    local codes
-	codes=$(jq -r '
-	  [
-		.results.primary[].ipv4,
-		.results.primary[].ipv6,
-		.results.custom[].ipv4,
-		.results.custom[].ipv6
-	  ]
-	  | map(select(. != null))
-	  | map(gsub("\u001b\\[[0-9;]*m"; ""))   # убираем ANSI-цвета
-	  | map(select(test("^(No|Yes|N/A)$") | not))
-	  | unique[]
-	' <<<"$RESULT_JSON")
+    echo "$(color TABLE_HEADER 'Code')$separator$(color TABLE_HEADER 'Country')$separator$(color TABLE_HEADER '% IPv4')$separator$(color TABLE_HEADER '% IPv6')"
 
-    for code in $codes; do
+    # Считаем отдельно IPv4 и IPv6
+    local stats
+    stats=$(jq -r '
+      def clean:
+        tostring
+        | gsub("\u001b\\[[0-9;]*m"; "")
+        | select(test("^(No|Yes|N/A)$") | not);
+
+      def counts(stream):
+        [stream | select(. != null) | clean] as $arr
+        | reduce ($arr[]) as $c ({}; .[$c] += 1)
+        | {total: ($arr | length), counts: .};
+
+      {
+        ipv4: counts(
+          (.results.primary[].ipv4?, .results.custom[].ipv4?)
+        ),
+        ipv6: counts(
+          (.results.primary[].ipv6?, .results.custom[].ipv6?)
+        )
+      }
+    ' <<<"$RESULT_JSON")
+
+    local codes
+    codes=$(jq -r '
+      [
+        (.ipv4.counts | keys[]?),
+        (.ipv6.counts | keys[]?)
+      ] | unique[]
+    ' <<<"$stats")
+
+    while read -r code; do
       local country="${COUNTRY_NAMES[$code]:-Unknown}"
-      echo "$(color SERVICE "$code")$separator$(format_value "$country" "$country")"
-    done
+
+      # Процент IPv4 (пусто если 0)
+      local ipv4_percent
+      ipv4_percent=$(jq -r --arg c "$code" '
+        if (.ipv4.total == 0 or (.ipv4.counts[$c] // 0) == 0)
+        then ""
+        else ((.ipv4.counts[$c] // 0) / .ipv4.total * 100 | round | tostring) + "%"
+        end
+      ' <<<"$stats")
+
+      # Процент IPv6 (пусто если 0)
+      local ipv6_percent
+      ipv6_percent=$(jq -r --arg c "$code" '
+        if (.ipv6.total == 0 or (.ipv6.counts[$c] // 0) == 0)
+        then ""
+        else ((.ipv6.counts[$c] // 0) / .ipv6.total * 100 | round | tostring) + "%"
+        end
+      ' <<<"$stats")
+
+      echo "$(color SERVICE "$code")$separator$(format_value "$country" "$country")$separator$ipv4_percent$separator$ipv6_percent"
+    done <<< "$codes"
   } | column -t -s "$separator"
 }
 
