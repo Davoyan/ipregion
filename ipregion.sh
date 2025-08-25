@@ -1405,15 +1405,19 @@ print_legend() {
   {
     echo "$(color TABLE_HEADER 'Code')$separator$(color TABLE_HEADER 'Country')"
     local codes
-    codes=$(jq -r '
-      [ .results.primary[].ipv4,
-        .results.primary[].ipv6,
-        .results.custom[].ipv4,
-        .results.custom[].ipv6
-      ]
-      | map(select(. and . != "N/A"))
-      | unique[]
-    ' <<<"$RESULT_JSON")
+	codes=$(jq -r '
+	  [
+		.results.primary[].ipv4,
+		.results.primary[].ipv6,
+		.results.custom[].ipv4,
+		.results.custom[].ipv6
+	  ]
+	  | map(select(. != null))
+	  | map(gsub("\u001b\\[[0-9;]*m"; ""))   # убираем ANSI-цвета
+	  | map(select(test("^(No|Yes|N/A)$") | not))
+	  | unique[]
+	' <<<"$RESULT_JSON")
+
     for code in $codes; do
       local country="${COUNTRY_NAMES[$code]:-Unknown}"
       echo "$(color SERVICE "$code")$separator$(format_value "$country" "$country")"
