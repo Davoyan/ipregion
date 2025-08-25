@@ -897,7 +897,7 @@ make_request() {
     --retry-connrefused --retry-all-errors
     --retry "$CURL_RETRIES"
     --connect-timeout "$CURL_TIMEOUT"
-	--max-time "$CURL_TIMEOUT"
+    --max-time "$CURL_TIMEOUT"
     --request "$method"
     -w '\n%{http_code}'
   )
@@ -962,7 +962,14 @@ make_request() {
 
   curl_args+=("$url")
 
-  response_with_code=$(curl "${curl_args[@]}")
+  response_with_code=$(timeout "$CURL_TIMEOUT"s curl "${curl_args[@]}")
+  local exit_status=$?
+
+  if [[ $exit_status -eq 124 ]]; then
+    echo ""
+    return 0
+  fi
+
   http_code=$(tail -n1 <<<"$response_with_code")
   response=$(sed '$d' <<<"$response_with_code")
 
@@ -1403,10 +1410,10 @@ print_legend() {
   local separator="|||"
   echo
   printf "%s\n\n" "$(color HEADER 'Legend')"
+
   {
     echo "$(color TABLE_HEADER 'Code')$separator$(color TABLE_HEADER 'Country')$separator$(color TABLE_HEADER '% IPv4')$separator$(color TABLE_HEADER '% IPv6')"
 
-    # Считаем отдельно IPv4 и IPv6
     local stats
     stats=$(jq -r '
       def clean:
@@ -1429,33 +1436,39 @@ print_legend() {
       }
     ' <<<"$RESULT_JSON")
 
-    # Вытаскиваем все коды стран (объединённый список из ipv4 и ipv6)
     local codes
     codes=$(jq -r '
       [
         (.ipv4.counts | keys[]?),
         (.ipv6.counts | keys[]?)
-      ] | unique[]
+      ] | unique[] 
     ' <<<"$stats")
 
-    # Проходим по кодам
     while read -r code; do
       local country="${COUNTRY_NAMES[$code]:-Unknown}"
-      # проценты для IPv4 и IPv6
       local ipv4_percent ipv6_percent
+
       ipv4_percent=$(jq -r --arg c "$code" '
         if (.ipv4.total == 0) then 0
         else ((.ipv4.counts[$c] // 0) / .ipv4.total * 100 | round)
         end
       ' <<<"$stats")
+
       ipv6_percent=$(jq -r --arg c "$code" '
         if (.ipv6.total == 0) then 0
         else ((.ipv6.counts[$c] // 0) / .ipv6.total * 100 | round)
         end
       ' <<<"$stats")
 
-      echo "$(color SERVICE "$code")$separator$(format_value "$country" "$country")$separator${ipv4_percent}%$separator${ipv6_percent}%"
+      [[ "$ipv4_percent" -eq 0 ]] && ipv4_percent=""
+      [[ "$ipv6_percent" -eq 0 ]] && ipv6_percent=""
+
+      [[ -n "$ipv4_percent" ]] && ipv4_percent="${ipv4_percent}%"
+      [[ -n "$ipv6_percent" ]] && ipv6_percent="${ipv6_percent}%"
+
+      echo "$(color SERVICE "$code")$separator$(format_value "$country" "$country")$separator${ipv4_percent}$separator${ipv6_percent}"
     done <<< "$codes"
+
   } | column -t -s "$separator"
 }
 
