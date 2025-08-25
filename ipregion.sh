@@ -1428,6 +1428,7 @@ print_legend() {
       }
     ' <<<"$RESULT_JSON")
 
+    # Вытаскиваем все коды стран (объединённый список из ipv4 и ipv6)
     local codes
     codes=$(jq -r '
       [
@@ -1436,28 +1437,23 @@ print_legend() {
       ] | unique[]
     ' <<<"$stats")
 
+    # Проходим по кодам
     while read -r code; do
       local country="${COUNTRY_NAMES[$code]:-Unknown}"
-
-      # Процент IPv4 (пусто если 0)
-      local ipv4_percent
+      # проценты для IPv4 и IPv6
+      local ipv4_percent ipv6_percent
       ipv4_percent=$(jq -r --arg c "$code" '
-        if (.ipv4.total == 0 or (.ipv4.counts[$c] // 0) == 0)
-        then ""
-        else ((.ipv4.counts[$c] // 0) / .ipv4.total * 100 | round | tostring) + "%"
+        if (.ipv4.total == 0) then 0
+        else ((.ipv4.counts[$c] // 0) / .ipv4.total * 100 | round)
         end
       ' <<<"$stats")
-
-      # Процент IPv6 (пусто если 0)
-      local ipv6_percent
       ipv6_percent=$(jq -r --arg c "$code" '
-        if (.ipv6.total == 0 or (.ipv6.counts[$c] // 0) == 0)
-        then ""
-        else ((.ipv6.counts[$c] // 0) / .ipv6.total * 100 | round | tostring) + "%"
+        if (.ipv6.total == 0) then 0
+        else ((.ipv6.counts[$c] // 0) / .ipv6.total * 100 | round)
         end
       ' <<<"$stats")
 
-      echo "$(color SERVICE "$code")$separator$(format_value "$country" "$country")$separator$ipv4_percent$separator$ipv6_percent"
+      echo "$(color SERVICE "$code")$separator$(format_value "$country" "$country")$separator${ipv4_percent}%$separator${ipv6_percent}%"
     done <<< "$codes"
   } | column -t -s "$separator"
 }
