@@ -21,7 +21,7 @@ ARR_CUSTOM=()
 ARR_CDN=()
 
 COLOR_HEADER="1;36"
-COLOR_SERVICE="1;32"
+COLOR_SERVICE="0;92"
 COLOR_HEART="1;31"
 COLOR_URL="1;90"
 COLOR_ASN="1;33"
@@ -41,42 +41,6 @@ declare -A DEPENDENCY_COMMANDS=(
   [jq]="jq"
   [curl]="curl"
   [util-linux]="column"
-)
-
-declare -A PRIMARY_SERVICES=(
-  [MAXMIND]="maxmind.com|geoip.maxmind.com|/geoip/v2.1/city/me"
-  [RIPE]="rdap.db.ripe.net|rdap.db.ripe.net|/ip/{ip}"
-  [IPINFO_IO]="ipinfo.io|ipinfo.io|/widget/demo/{ip}"
-  [IPREGISTRY]="ipregistry.co|api.ipregistry.co|/{ip}?hostname=true&key=sb69ksjcajfs4c"
-  [IPAPI_CO]="ipapi.co|ipapi.co|/{ip}/json"
-  [CLOUDFLARE]="cloudflare.com|www.cloudflare.com|/cdn-cgi/trace"
-  [IFCONFIG_CO]="ifconfig.co|ifconfig.co|/country-iso?ip={ip}|plain"
-  [IPLOCATION_COM]="iplocation.com|iplocation.com"
-  [COUNTRY_IS]="country.is|api.country.is|/{ip}"
-  [GEOAPIFY_COM]="geoapify.com|api.geoapify.com|/v1/ipinfo?&ip={ip}&apiKey=b8568cb9afc64fad861a69edbddb2658"
-  [GEOJS_IO]="geojs.io|get.geojs.io|/v1/ip/country.json?ip={ip}"
-  [IPAPI_IS]="ipapi.is|api.ipapi.is|/?q={ip}"
-  [IPBASE_COM]="ipbase.com|api.ipbase.com|/v2/info?ip={ip}"
-  [IPQUERY_IO]="ipquery.io|api.ipquery.io|/{ip}"
-  [IP_SB]="ip.sb|api.ip.sb|/geoip/{ip}"
-)
-
-PRIMARY_SERVICES_ORDER=(
-  "MAXMIND"
-  "RIPE"
-  "IPINFO_IO"
-  "CLOUDFLARE"
-  "IPREGISTRY"
-  "IPAPI_CO"
-  "IFCONFIG_CO"
-  "IPLOCATION_COM"
-  "COUNTRY_IS"
-  "GEOAPIFY_COM"
-  "GEOJS_IO"
-  "IPAPI_IS"
-  "IPBASE_COM"
-  "IPQUERY_IO"
-  "IP_SB"
 )
 
 declare -A COUNTRY_NAMES=(
@@ -332,6 +296,42 @@ declare -A COUNTRY_NAMES=(
   [XK]="Kosovo"
 )
 
+declare -A PRIMARY_SERVICES=(
+  [MAXMIND]="maxmind.com|geoip.maxmind.com|/geoip/v2.1/city/me"
+  [RIPE]="rdap.db.ripe.net|rdap.db.ripe.net|/ip/{ip}"
+  [IPINFO_IO]="ipinfo.io|ipinfo.io|/widget/demo/{ip}"
+  [IPREGISTRY]="ipregistry.co|api.ipregistry.co|/{ip}?hostname=true&key=sb69ksjcajfs4c"
+  [IPAPI_CO]="ipapi.co|ipapi.co|/{ip}/json"
+  [CLOUDFLARE]="cloudflare.com|www.cloudflare.com|/cdn-cgi/trace"
+  [IFCONFIG_CO]="ifconfig.co|ifconfig.co|/country-iso?ip={ip}|plain"
+  [IPLOCATION_COM]="iplocation.com|iplocation.com"
+  [COUNTRY_IS]="country.is|api.country.is|/{ip}"
+  [GEOAPIFY_COM]="geoapify.com|api.geoapify.com|/v1/ipinfo?&ip={ip}&apiKey=b8568cb9afc64fad861a69edbddb2658"
+  [GEOJS_IO]="geojs.io|get.geojs.io|/v1/ip/country.json?ip={ip}"
+  [IPAPI_IS]="ipapi.is|api.ipapi.is|/?q={ip}"
+  [IPBASE_COM]="ipbase.com|api.ipbase.com|/v2/info?ip={ip}"
+  [IPQUERY_IO]="ipquery.io|api.ipquery.io|/{ip}"
+  [IP_SB]="ip.sb|api.ip.sb|/geoip/{ip}"
+)
+
+PRIMARY_SERVICES_ORDER=(
+  "MAXMIND"
+  "RIPE"
+  "IPINFO_IO"
+  "CLOUDFLARE"
+  "IPREGISTRY"
+  "IPAPI_CO"
+  "IFCONFIG_CO"
+  "IPLOCATION_COM"
+  "COUNTRY_IS"
+  "GEOAPIFY_COM"
+  "GEOJS_IO"
+  "IPAPI_IS"
+  "IPBASE_COM"
+  "IPQUERY_IO"
+  "IP_SB"
+)
+
 declare -A PRIMARY_SERVICES_CUSTOM_HANDLERS=(
   [CLOUDFLARE]="lookup_cloudflare"
   [IPLOCATION_COM]="lookup_iplocation_com"
@@ -386,9 +386,9 @@ declare -A CUSTOM_SERVICES_HANDLERS=(
   [NETFLIX]="lookup_netflix"
   [SPOTIFY]="lookup_spotify"
   [REDDIT]="lookup_reddit"
-  [REDDIT_GUEST_ACCESS]="lookup_reddit_guest_access"
-  [YOUTUBE_PREMIUM]="lookup_youtube_premium"
-  [GOOGLE_SEARCH_CAPTCHA]="lookup_google_search_captcha"
+  #[REDDIT_GUEST_ACCESS]="lookup_reddit_guest_access"
+  #[YOUTUBE_PREMIUM]="lookup_youtube_premium"
+  #[GOOGLE_SEARCH_CAPTCHA]="lookup_google_search_captcha"
   [APPLE]="lookup_apple"
   [STEAM]="lookup_steam"
   [TIKTOK]="lookup_tiktok"
@@ -1328,64 +1328,52 @@ add_result() {
 }
 
 print_table_group() {
-  local group="$1"
-  local group_title="$2"
-  local na="N/A"
-  local show_ipv4=0
-  local show_ipv6=0
-  local separator=$'\t'
+    local group="$1"
+    local group_title="$2"
+    local na="N/A"
+    local show_ipv4=0
+    local show_ipv6=0
+    local separator=$'\t'
+    local col_width=32
 
-  if [[ "$IPV6_ONLY" != true && -n "$EXTERNAL_IPV4" ]]; then
-    show_ipv4=1
-  fi
+    [[ "$IPV6_ONLY" != true && -n "$EXTERNAL_IPV4" ]] && show_ipv4=1
+    [[ "$IPV4_ONLY" != true && -n "$EXTERNAL_IPV6" ]] && show_ipv6=1
+	
+	if [[ "$group_title" != "GeoIP services" ]]; then
+		#printf "%s\n\n" "$(color HEADER "$group_title")"
+		printf "%-${col_width}s" "$(color TABLE_HEADER 'Service')"
+	fi
 
-  if [[ "$IPV4_ONLY" != true && -n "$EXTERNAL_IPV6" ]]; then
-    show_ipv6=1
-  fi
-
-  printf "%s\n\n" "$(color HEADER "$group_title")"
-
-  {
-    printf "%s" "$(color TABLE_HEADER 'Service')"
-
-    if [[ $show_ipv4 -eq 1 ]]; then
-      printf "%s%s" "$separator" "$(color TABLE_HEADER 'IPv4')"
+    if [[ "$group_title" != "GeoIP services" ]]; then
+        [[ $show_ipv4 -eq 1 ]] && printf "%s%s" "$separator" "$(color TABLE_HEADER 'IPv4')"
+        [[ $show_ipv6 -eq 1 ]] && printf "%s%s" "$separator" "$(color TABLE_HEADER 'IPv6')"
     fi
-
-    if [[ $show_ipv6 -eq 1 ]]; then
-      printf "%s%s" "$separator" "$(color TABLE_HEADER 'IPv6')"
-    fi
-
     printf "\n"
 
     jq -r --arg group "$group" '
-      (.results // {}) as $r
-      | ($r[$group] // [])
-      | .[]
-      | [ .service, (.ipv4 // "N/A"), (.ipv6 // "N/A") ]
-      | @tsv
+        (.results // {}) as $r
+        | ($r[$group] // [])
+        | .[]
+        | [ .service, (.ipv4 // "N/A"), (.ipv6 // "N/A") ]
+        | @tsv
     ' <<<"$RESULT_JSON" | while IFS=$'\t' read -r s v4 v6; do
 
-      printf "%s" "$(color SERVICE "$s")"
+        printf "%-${col_width}s" "$(color SERVICE "$s")"
 
-      if [[ $show_ipv4 -eq 1 ]]; then
-        if [[ "$v4" == "null" || -z "$v4" ]]; then
-          v4="$na"
-        fi
-        printf "%s%s" "$separator" "$(format_value "$v4" "$na")"
-      fi
+		if [[ $show_ipv4 -eq 1 ]]; then
+			[[ "$v4" == "null" || -z "$v4" ]] && v4="$na"
+			printf "%s%s" "$separator" "$(format_value "$v4" "$na")"
+		fi
 
-      if [[ $show_ipv6 -eq 1 ]]; then
-        if [[ "$v6" == "null" || -z "$v6" ]]; then
-          v6="$na"
-        fi
-        printf "%s%s" "$separator" "$(format_value "$v6" "$na")"
-      fi
+		if [[ $show_ipv6 -eq 1 ]]; then
+			[[ "$v6" == "null" || -z "$v6" ]] && v6="$na"
+			printf "%s%s" "$separator" "$(format_value "$v6" "$na")"
+		fi
 
-      printf "\n"
+        printf "\n"
     done
-  } | column -t -s "$separator"
 }
+
 
 print_header() {
   local ipv4 ipv6
@@ -1494,10 +1482,9 @@ print_results() {
       ;;
     *)
       print_table_group "custom" "Popular services"
-      printf "\n"
       print_table_group "primary" "GeoIP services"
-      printf "\n"
-      print_table_group "cdn" "CDN services"
+      #printf "\n"
+      #print_table_group "cdn" "CDN services"
       ;;
   esac
   
@@ -1826,7 +1813,7 @@ main() {
     *)
       run_service_group "primary"
       run_service_group "custom"
-      run_service_group "cdn"
+      #run_service_group "cdn"
       ;;
   esac
 
