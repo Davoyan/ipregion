@@ -902,36 +902,29 @@ make_request() {
   )
 
   while (($#)); do
-	  case "$1" in
-		--ip-version)
-		  ip_version="$2"
-		  shift 2
-		  ;;
-		--user-agent)
-		  user_agent="$2"
-		  shift 2
-		  ;;
-		--header)
-		  headers+=("$2")
-		  shift 2
-		  ;;
-		--json)
-		  json="$2"
-		  shift 2
-		  ;;
-		--data)
-		  data="$2"
-		  shift 2
-		  ;;
-		--timeout)
-		  CURL_TIMEOUT="$2"
-		  shift 2
-		  ;;
-		*)
-		  shift
-		  ;;
-	  esac
-	done
+    case "$1" in
+      --ip-version)
+        ip_version="$2"
+        shift 2
+        ;;
+      --user-agent)
+        user_agent="$2"
+        shift 2
+        ;;
+      --header)
+        headers+=("$2")
+        shift 2
+        ;;
+      --json)
+        json="$2"
+        shift 2
+        ;;
+      --data)
+        data="$2"
+        shift 2
+        ;;
+    esac
+  done
 
   if [[ "$ip_version" == "4" ]]; then
     curl_args+=(-4)
