@@ -777,22 +777,86 @@ check_ip_support() {
   return 1
 }
 
-get_external_ip() {
-  local identity_service
+IDENTITY_SERVICES=(
+  "ident.me"
+  "ifconfig.me"
+  "api64.ipify.org"
+  "ifconfig.co"
+  "ifconfig.me"
+)
 
-  identity_service=${IDENTITY_SERVICES[$RANDOM % ${#IDENTITY_SERVICES[@]}]}
-  log "$LOG_INFO" "Using identity service: $identity_service"
+IDENTITY_SERVICES=(
+  "ident.me"
+  "ifconfig.me"
+  "api64.ipify.org"
+  "ifconfig.co"
+  "ifconfig.me"
+)
+
+get_external_ip() {
+  local results=()
+  local ip
+  local counts
+  declare -A counts
 
   if [[ "$IPV4_ONLY" == true ]] || [[ "$IPV6_ONLY" != true ]]; then
-    log "$LOG_INFO" "Getting external IPv4 address"
-    EXTERNAL_IPV4="$(make_request GET "https://$identity_service" --ip-version 4)"
-    log "$LOG_INFO" "External IPv4: $EXTERNAL_IPV4"
+    log "$LOG_INFO" "Checking external IPv4 addresses"
+    for service in "${IDENTITY_SERVICES[@]}"; do
+      ip="$(make_request GET "https://$service" --ip-version 4 2>/dev/null)"
+      if [[ -n "$ip" ]]; then
+        counts[$ip]=$(( ${counts[$ip]:-0} + 1 ))
+        log "$LOG_INFO" "[$service] IPv4: $ip"
+      fi
+    done
+
+    EXTERNAL_IPV4=""
+    for ip in "${!counts[@]}"; do
+      if [[ ${counts[$ip]} -ge 2 ]]; then
+        EXTERNAL_IPV4="$ip"
+        log "$LOG_INFO" "Confirmed external IPv4: $EXTERNAL_IPV4"
+        break
+      fi
+    done
+
+    # Fallback, если совпадений нет
+    if [[ -z "$EXTERNAL_IPV4" ]]; then
+      for ip in "${!counts[@]}"; do
+        EXTERNAL_IPV4="$ip"
+        log "$LOG_INFO" "Fallback external IPv4: $EXTERNAL_IPV4"
+        break
+      done
+    fi
   fi
 
+  unset counts
+  declare -A counts
   if [[ "$IPV6_ONLY" == true ]] || { [[ "$IPV6_SUPPORTED" -eq 0 ]] && [[ "$IPV4_ONLY" != true ]]; }; then
-    log "$LOG_INFO" "Getting external IPv6 address"
-    EXTERNAL_IPV6="$(make_request GET "https://$identity_service" --ip-version 6)"
-    log "$LOG_INFO" "External IPv6: $EXTERNAL_IPV6"
+    log "$LOG_INFO" "Checking external IPv6 addresses"
+    for service in "${IDENTITY_SERVICES[@]}"; do
+      ip="$(make_request GET "https://$service" --ip-version 6 2>/dev/null)"
+      if [[ -n "$ip" ]]; then
+        counts[$ip]=$(( ${counts[$ip]:-0} + 1 ))
+        log "$LOG_INFO" "[$service] IPv6: $ip"
+      fi
+    done
+
+    EXTERNAL_IPV6=""
+    for ip in "${!counts[@]}"; do
+      if [[ ${counts[$ip]} -ge 2 ]]; then
+        EXTERNAL_IPV6="$ip"
+        log "$LOG_INFO" "Confirmed external IPv6: $EXTERNAL_IPV6"
+        break
+      fi
+    done
+
+    # Fallback, если совпадений нет
+    if [[ -z "$EXTERNAL_IPV6" ]]; then
+      for ip in "${!counts[@]}"; do
+        EXTERNAL_IPV6="$ip"
+        log "$LOG_INFO" "Fallback external IPv6: $EXTERNAL_IPV6"
+        break
+      done
+    fi
   fi
 }
 
