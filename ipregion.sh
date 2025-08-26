@@ -1638,6 +1638,23 @@ lookup_iplocation_com() {
   process_json "$response" ".country_code"
 }
 
+get_country_code() {
+    local country="$1"
+    local json
+
+    json=$(curl --max-time 5 -s "https://restcountries.com/v3.1/all?fields=name,cca2")
+    if [[ -z "$json" ]] || ! grep -q '"name"' <<<"$json"; then
+        echo ""
+        return
+    fi
+
+    jq -r --arg COUNTRY "$country" '
+        .[]
+        | select(.name.common | ascii_downcase == ($COUNTRY | ascii_downcase))
+        | .cca2
+    ' <<<"$json"
+}
+
 lookup_google() {
   local ip_version="$1"
   local sed_filter='s/.*"[a-z]\{2\}_\([A-Z]\{2\}\)".*/\1/p'
@@ -1652,6 +1669,23 @@ lookup_google() {
 
   if [[ -z "$result" ]]; then
     result=$(sed -n "$sed_fallback_filter" <<<"$response" | tail -n 1)
+  fi
+  
+  if [[ -z "$result" ]]; then
+    local curl_ip_flag country
+	if [[ "$ip_version" == "4" ]]; then
+		curl_ip_flag="-4"
+	elif [[ "$ip_version" == "6" ]]; then
+		curl_ip_flag="-6"
+	else
+		curl_ip_flag="-4"
+	fi
+    country=$(timeout "$CURL_TIMEOUT" curl $curl_ip_flag -sL 'https://play.google.com/'   -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'   -H 'accept-language: en-US;q=0.9'   -H 'priority: u=0, i'   -H 'sec-ch-ua: "Chromium";v="131", "Not_A Brand";v="24", "Google Chrome";v="131"'   -H 'sec-ch-ua-mobile: ?0'   -H 'sec-ch-ua-platform: "Windows"'   -H 'sec-fetch-dest: document'   -H 'sec-fetch-mode: navigate'   -H 'sec-fetch-site: none'   -H 'sec-fetch-user: ?1'   -H 'upgrade-insecure-requests: 1' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' | grep -oP '<div class="yVZQTb">\K[^<(]+')
+
+	country=$(echo "$country" | xargs)  # убираем пробелы
+	if [[ -n "$country" ]]; then
+		result=$(get_country_code "$country")
+	fi  
   fi
 
   echo "$result"
@@ -1740,38 +1774,43 @@ lookup_reddit_guest_access() {
 }
 
 lookup_youtube() {
-  local ip_version="$1"
-  local result response curl_ip_flag
+    local ip_version="$1"
+    local result curl_ip_flag service_name rest ipv4 ipv6
 
-  # Определяем флаг для curl по версии IP
-  if [[ "$ip_version" == "4" ]]; then
-    curl_ip_flag="-4"
-  elif [[ "$ip_version" == "6" ]]; then
-    curl_ip_flag="-6"
-  else
-    curl_ip_flag="-4"
-  fi
-  
-  result=$(timeout "$CURL_TIMEOUT" curl $curl_ip_flag -s -A "$USER_AGENT" "https://www.youtube.com" | grep -oP '"countryCode":"\K\w+')
+    if [[ "$ip_version" == "4" ]]; then
+        curl_ip_flag="-4"
+    elif [[ "$ip_version" == "6" ]]; then
+        curl_ip_flag="-6"
+    else
+        curl_ip_flag="-4"
+    fi
 
-  if [[ -z "$result" || "$result" == "null" || "$result" == "n/a" || ${#result} -gt 7 ]]; then
-    local sed_filter='s/.*"[a-z]\{2\}_\([A-Z]\{2\}\)".*/\1/p'
-	local sed_fallback_filter='s/.*"[a-z]\{2\}-\([A-Z]\{2\}\)".*/\1/p'
-	local response result
+    result=$(timeout "${CURL_TIMEOUT:-5}" curl $curl_ip_flag -s -A "$USER_AGENT" "https://www.youtube.com" \
+        | grep -oP '"countryCode":"\K\w+')
 
-	response=$(make_request GET "https://www.google.com" \
-		--user-agent "$USER_AGENT" \
-		--ip-version "$ip_version")
+    if [[ -z "$result" || "$result" == "null" || "$result" == "n/a" || ${#result} -gt 7 ]]; then
+        for entry in "${ARR_CUSTOM[@]}"; do
+            service_name="${entry%%|||*}"
+            if [[ "$service_name" == "Google" ]]; then
+                rest="${entry#*|||}"
+                ipv4="${rest%%|||*}"
+                ipv6="${rest#*|||}"
 
-	result=$(sed -n "$sed_filter" <<<"$response")
+                if [[ "$ip_version" == "4" ]]; then
+                    result="$ipv4"
+                else
+                    result="$ipv6"
+                fi
 
-	if [[ -z "$result" ]]; then
-		result=$(sed -n "$sed_fallback_filter" <<<"$response" | tail -n 1)
-	fi
-  fi
+                break
+            fi
+        done
+		#result=$(lookup_google "$ip_version")
+    fi
 
-  echo "$result"
+    echo "$result"
 }
+
 
 lookup_youtube_premium() {
   local ip_version="$1"
