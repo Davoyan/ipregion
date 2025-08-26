@@ -1404,7 +1404,7 @@ print_legend() {
     def clean:
       tostring
       | gsub("\u001b\\[[0-9;]*m"; "")
-      | select(test("^(No|Yes|N/A)$") | not);
+      | select(test("^(No|Yes|N/A|null)$") | not);
 
     def counts(stream):
       [stream | select(. != null) | clean] as $arr
