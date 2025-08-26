@@ -1495,6 +1495,8 @@ print_legend() {
   
   if [[ -n "$EXTERNAL_IPV6" ]]; then
     show_ipv6=true
+  else
+    show_ipv6=false
   fi
 
   {
