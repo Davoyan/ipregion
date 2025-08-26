@@ -785,14 +785,6 @@ IDENTITY_SERVICES=(
   "ifconfig.me"
 )
 
-IDENTITY_SERVICES=(
-  "ident.me"
-  "ifconfig.me"
-  "api64.ipify.org"
-  "ifconfig.co"
-  "ifconfig.me"
-)
-
 get_external_ip() {
   local results=()
   local ip
@@ -1499,10 +1491,6 @@ print_legend() {
   fi
   if [[ "${IPV6_ONLY,,}" == "true" && "${IPV4_ONLY,,}" != "true" ]]; then
     show_ipv4=false
-  fi
-  
-  if [[ "${IPV6_SUPPORTED}" == "0" ]]; then
-    show_ipv6=false
   fi
 
   {
