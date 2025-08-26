@@ -345,14 +345,14 @@ declare -A SERVICE_HEADERS=(
 
 declare -A CUSTOM_SERVICES=(
   [GOOGLE]="Google"
+  [GOOGLE_SEARCH_CAPTCHA]="Google Search Captcha"
+  [YOUTUBE_PREMIUM]="YouTube Premium"
   [TWITCH]="Twitch"
   [CHATGPT]="ChatGPT"
   [NETFLIX]="Netflix"
   [SPOTIFY]="Spotify"
   [REDDIT]="Reddit"
   [REDDIT_GUEST_ACCESS]="Reddit (Guest Access)"
-  [YOUTUBE_PREMIUM]="YouTube Premium"
-  #[GOOGLE_SEARCH_CAPTCHA]="Google Search Captcha"
   [APPLE]="Apple"
   [STEAM]="Steam"
   [TIKTOK]="Tiktok"
@@ -380,15 +380,15 @@ CUSTOM_SERVICES_ORDER=(
 )
 
 declare -A CUSTOM_SERVICES_HANDLERS=(
-  [GOOGLE]="lookup_google"
+  [GOOGLE]="lookup_google"  
+  [GOOGLE_SEARCH_CAPTCHA]="lookup_google_search_captcha"
+  [YOUTUBE_PREMIUM]="lookup_youtube_premium"
   [TWITCH]="lookup_twitch"
   [CHATGPT]="lookup_chatgpt"
   [NETFLIX]="lookup_netflix"
   [SPOTIFY]="lookup_spotify"
   [REDDIT]="lookup_reddit"
   [REDDIT_GUEST_ACCESS]="lookup_reddit_guest_access"
-  [YOUTUBE_PREMIUM]="lookup_youtube_premium"
-  #[GOOGLE_SEARCH_CAPTCHA]="lookup_google_search_captcha"
   [APPLE]="lookup_apple"
   [STEAM]="lookup_steam"
   [TIKTOK]="lookup_tiktok"
