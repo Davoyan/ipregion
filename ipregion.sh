@@ -1493,7 +1493,7 @@ print_legend() {
     show_ipv4=false
   fi
   
-  if [[ "$IPV6_SUPPORTED" -eq 0 ]]; then
+  if [[ -n "$EXTERNAL_IPV6" ]]; then
     show_ipv6=true
   fi
 
