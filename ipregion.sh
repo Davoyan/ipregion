@@ -1429,12 +1429,27 @@ print_legend() {
     ] | unique[]
   ' <<<"$stats")
 
-  {
-    # Header (цветной) — оставляем как есть
-    echo "$(color TABLE_HEADER 'Code')$separator$(color TABLE_HEADER 'Country')$separator$(color TABLE_HEADER '% IPv4')$separator$(color TABLE_HEADER '% IPv6')"
+  local show_ipv4=true show_ipv6=true
+  if [[ "${IPV4_ONLY,,}" == "true" && "${IPV6_ONLY,,}" != "true" ]]; then
+    show_ipv6=false
+  fi
+  if [[ "${IPV6_ONLY,,}" == "true" && "${IPV4_ONLY,,}" != "true" ]]; then
+    show_ipv4=false
+  fi
 
-    # Тело: сначала печатаем строки с двумя числовыми колонками (ipv4_num, ipv6_num),
-    # сортируем по ним (численно, по убыванию), затем с помощью awk выводим нужные колонки
+  {
+    local header_parts=()
+    header_parts+=("$(color TABLE_HEADER 'Code')")
+    header_parts+=("$(color TABLE_HEADER 'Country')")
+    $show_ipv4 && header_parts+=("$(color TABLE_HEADER '% IPv4')")
+    $show_ipv6 && header_parts+=("$(color TABLE_HEADER '% IPv6')")
+
+    local header="${header_parts[0]}"
+    for ((i=1; i<${#header_parts[@]}; i++)); do
+      header+="$separator${header_parts[i]}"
+    done
+    echo "$header"
+
     while read -r code; do
       local country ipv4_num ipv6_num ipv4_str ipv6_str
       country="${COUNTRY_NAMES[$code]:-Unknown}"
@@ -1456,16 +1471,25 @@ print_legend() {
       [[ "$ipv4_num" -ne 0 ]] && ipv4_str="${ipv4_num}%"
       [[ "$ipv6_num" -ne 0 ]] && ipv6_str="${ipv6_num}%"
 
-      # Печатаем: numeric_ipv4<TAB>numeric_ipv6<TAB>code<TAB>country<TAB>ipv4_str<TAB>ipv6_str
       printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
         "$ipv4_num" "$ipv6_num" "$(color SERVICE "$code")" "$(format_value "$country" "$country")" "$ipv4_str" "$ipv6_str"
     done <<< "$codes" \
       | sort -t$'\t' -k1,1nr -k2,2nr \
-      | awk -F $'\t' -v OFS="$separator" '{print $3,$4,$5,$6}'
+      | awk -F $'\t' -v OFS="$separator" \
+        "$(
+          if $show_ipv4 && $show_ipv6; then
+            echo '{print $3,$4,$5,$6}'
+          elif $show_ipv4; then
+            echo '{print $3,$4,$5}'
+          elif $show_ipv6; then
+            echo '{print $3,$4,$6}'
+          else
+            echo '{print $3,$4,$5,$6}'
+          fi
+        )"
 
   } | column -t -s "$separator"
 }
-
 
 print_results() {
   finalize_json
