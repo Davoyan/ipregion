@@ -1436,6 +1436,10 @@ print_legend() {
   if [[ "${IPV6_ONLY,,}" == "true" && "${IPV4_ONLY,,}" != "true" ]]; then
     show_ipv4=false
   fi
+  
+  if [[ "${IPV6_SUPPORTED}" == "0" ]]; then
+    show_ipv6=false
+  fi
 
   {
     local header_parts=()
