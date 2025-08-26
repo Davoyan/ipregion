@@ -346,6 +346,7 @@ declare -A SERVICE_HEADERS=(
 declare -A CUSTOM_SERVICES=(
   [GOOGLE]="Google"
   [GOOGLE_SEARCH_CAPTCHA]="Google Search Captcha"
+  [YOUTUBE]="YouTube"
   [YOUTUBE_PREMIUM]="YouTube Premium"
   [TWITCH]="Twitch"
   [CHATGPT]="ChatGPT"
@@ -365,6 +366,7 @@ declare -A CUSTOM_SERVICES=(
 CUSTOM_SERVICES_ORDER=(
   "GOOGLE"
   "GOOGLE_SEARCH_CAPTCHA"
+  "YOUTUBE"
   "YOUTUBE_PREMIUM"
   "TWITCH"
   "CHATGPT"
@@ -382,6 +384,7 @@ CUSTOM_SERVICES_ORDER=(
 declare -A CUSTOM_SERVICES_HANDLERS=(
   [GOOGLE]="lookup_google"  
   [GOOGLE_SEARCH_CAPTCHA]="lookup_google_search_captcha"
+  [YOUTUBE]="lookup_youtube"
   [YOUTUBE_PREMIUM]="lookup_youtube_premium"
   [TWITCH]="lookup_twitch"
   [CHATGPT]="lookup_chatgpt"
@@ -1734,6 +1737,40 @@ lookup_reddit_guest_access() {
   fi
 
   print_value_or_colored "$is_available" "$color_name"
+}
+
+lookup_youtube() {
+  local ip_version="$1"
+  local result response curl_ip_flag
+
+  # Определяем флаг для curl по версии IP
+  if [[ "$ip_version" == "4" ]]; then
+    curl_ip_flag="-4"
+  elif [[ "$ip_version" == "6" ]]; then
+    curl_ip_flag="-6"
+  else
+    curl_ip_flag="-4"
+  fi
+  
+  result=$(timeout "$CURL_TIMEOUT" curl $curl_ip_flag -s -A "$USER_AGENT" "https://www.youtube.com" | grep -oP '"countryCode":"\K\w+')
+
+  if [[ -z "$result" || "$result" == "null" || "$result" == "n/a" || ${#result} -gt 7 ]]; then
+    local sed_filter='s/.*"[a-z]\{2\}_\([A-Z]\{2\}\)".*/\1/p'
+	local sed_fallback_filter='s/.*"[a-z]\{2\}-\([A-Z]\{2\}\)".*/\1/p'
+	local response result
+
+	response=$(make_request GET "https://www.google.com" \
+		--user-agent "$USER_AGENT" \
+		--ip-version "$ip_version")
+
+	result=$(sed -n "$sed_filter" <<<"$response")
+
+	if [[ -z "$result" ]]; then
+		result=$(sed -n "$sed_fallback_filter" <<<"$response" | tail -n 1)
+	fi
+  fi
+
+  echo "$result"
 }
 
 lookup_youtube_premium() {
