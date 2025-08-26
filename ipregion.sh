@@ -1399,66 +1399,73 @@ print_legend() {
   echo
   printf "%s\n\n" "$(color HEADER 'Legend')"
 
+  local stats
+  stats=$(jq -r '
+    def clean:
+      tostring
+      | gsub("\u001b\\[[0-9;]*m"; "")
+      | select(test("^(No|Yes|N/A)$") | not);
+
+    def counts(stream):
+      [stream | select(. != null) | clean] as $arr
+      | reduce ($arr[]) as $c ({}; .[$c] += 1)
+      | {total: ($arr | length), counts: .};
+
+    {
+      ipv4: counts(
+        (.results.primary[].ipv4?, .results.custom[].ipv4?)
+      ),
+      ipv6: counts(
+        (.results.primary[].ipv6?, .results.custom[].ipv6?)
+      )
+    }
+  ' <<<"$RESULT_JSON")
+
+  local codes
+  codes=$(jq -r '
+    [
+      (.ipv4.counts | keys[]?),
+      (.ipv6.counts | keys[]?)
+    ] | unique[]
+  ' <<<"$stats")
+
   {
+    # Header (цветной) — оставляем как есть
     echo "$(color TABLE_HEADER 'Code')$separator$(color TABLE_HEADER 'Country')$separator$(color TABLE_HEADER '% IPv4')$separator$(color TABLE_HEADER '% IPv6')"
 
-    local stats
-    stats=$(jq -r '
-      def clean:
-        tostring
-        | gsub("\u001b\\[[0-9;]*m"; "")
-        | select(test("^(No|Yes|N/A)$") | not);
-
-      def counts(stream):
-        [stream | select(. != null) | clean] as $arr
-        | reduce ($arr[]) as $c ({}; .[$c] += 1)
-        | {total: ($arr | length), counts: .};
-
-      {
-        ipv4: counts(
-          (.results.primary[].ipv4?, .results.custom[].ipv4?)
-        ),
-        ipv6: counts(
-          (.results.primary[].ipv6?, .results.custom[].ipv6?)
-        )
-      }
-    ' <<<"$RESULT_JSON")
-
-    local codes
-    codes=$(jq -r '
-      [
-        (.ipv4.counts | keys[]?),
-        (.ipv6.counts | keys[]?)
-      ] | unique[] 
-    ' <<<"$stats")
-
+    # Тело: сначала печатаем строки с двумя числовыми колонками (ipv4_num, ipv6_num),
+    # сортируем по ним (численно, по убыванию), затем с помощью awk выводим нужные колонки
     while read -r code; do
-      local country="${COUNTRY_NAMES[$code]:-Unknown}"
-      local ipv4_percent ipv6_percent
+      local country ipv4_num ipv6_num ipv4_str ipv6_str
+      country="${COUNTRY_NAMES[$code]:-Unknown}"
 
-      ipv4_percent=$(jq -r --arg c "$code" '
+      ipv4_num=$(jq -r --arg c "$code" '
         if (.ipv4.total == 0) then 0
         else ((.ipv4.counts[$c] // 0) / .ipv4.total * 100 | round)
         end
       ' <<<"$stats")
 
-      ipv6_percent=$(jq -r --arg c "$code" '
+      ipv6_num=$(jq -r --arg c "$code" '
         if (.ipv6.total == 0) then 0
         else ((.ipv6.counts[$c] // 0) / .ipv6.total * 100 | round)
         end
       ' <<<"$stats")
 
-      [[ "$ipv4_percent" -eq 0 ]] && ipv4_percent=""
-      [[ "$ipv6_percent" -eq 0 ]] && ipv6_percent=""
+      ipv4_str=""
+      ipv6_str=""
+      [[ "$ipv4_num" -ne 0 ]] && ipv4_str="${ipv4_num}%"
+      [[ "$ipv6_num" -ne 0 ]] && ipv6_str="${ipv6_num}%"
 
-      [[ -n "$ipv4_percent" ]] && ipv4_percent="${ipv4_percent}%"
-      [[ -n "$ipv6_percent" ]] && ipv6_percent="${ipv6_percent}%"
-
-      echo "$(color SERVICE "$code")$separator$(format_value "$country" "$country")$separator${ipv4_percent}$separator${ipv6_percent}"
-    done <<< "$codes"
+      # Печатаем: numeric_ipv4<TAB>numeric_ipv6<TAB>code<TAB>country<TAB>ipv4_str<TAB>ipv6_str
+      printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$ipv4_num" "$ipv6_num" "$(color SERVICE "$code")" "$(format_value "$country" "$country")" "$ipv4_str" "$ipv6_str"
+    done <<< "$codes" \
+      | sort -t$'\t' -k1,1nr -k2,2nr \
+      | awk -F $'\t' -v OFS="$separator" '{print $3,$4,$5,$6}'
 
   } | column -t -s "$separator"
 }
+
 
 print_results() {
   finalize_json
