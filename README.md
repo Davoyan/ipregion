@@ -1,4 +1,4 @@
-# IpRegion (fork)
+# ipregion
 
 A bash script for determining your IP geolocation using various GeoIP services and popular websites.  
 This is a **fork** of the [original script](https://github.com/vernette/ipregion/), with a number of improvements and fixes.
