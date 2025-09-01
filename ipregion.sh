@@ -869,6 +869,8 @@ get_asn() {
   response=$(make_request GET "https://geoip.oxl.app/api/ip/$ip" --ip-version "$ip_version")
   asn=$(process_json "$response" ".asn")
   asn_name=$(process_json "$response" ".organization.name")
+  asn_name=${asn_name#null}
+  
 
   log "$LOG_INFO" "ASN info: AS$asn $asn_name"
 }
