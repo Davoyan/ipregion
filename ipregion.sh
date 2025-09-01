@@ -294,6 +294,7 @@ declare -A COUNTRY_NAMES=(
   [ZM]="Zambia"
   [ZW]="Zimbabwe"
   [XK]="Kosovo"
+  [EU]="European Union"
 )
 
 declare -A PRIMARY_SERVICES=(
@@ -357,7 +358,6 @@ declare -A CUSTOM_SERVICES=(
   [APPLE]="Apple"
   [STEAM]="Steam"
   [TIKTOK]="Tiktok"
-  [CLOUDFLARE_CDN]="Cloudflare CDN"
   [YOUTUBE_CDN]="YouTube CDN"
   [OOKLA_SPEEDTEST]="Ookla Speedtest"
   [JETBRAINS]="JetBrains"
@@ -403,13 +403,11 @@ declare -A CUSTOM_SERVICES_HANDLERS=(
 )
 
 declare -A CDN_SERVICES=(
-  [CLOUDFLARE_CDN]="Cloudflare CDN"
   [YOUTUBE_CDN]="YouTube CDN"
   [NETFLIX_CDN]="Netflix CDN"
 )
 
 CDN_SERVICES_ORDER=(
-  "CLOUDFLARE_CDN"
   "YOUTUBE_CDN"
   "NETFLIX_CDN"
 )
@@ -1211,8 +1209,13 @@ process_service() {
       ipv6_result=$(probe_service "$service" 6 "$EXTERNAL_IPV6")
     fi
   fi
+  
+  ipv4_clean=${ipv4_result#null}
+  ipv6_clean=${ipv6_result#null}
 
-  add_result "primary" "$display_name" "$ipv4_result" "$ipv6_result"
+  add_result "primary" "$display_name" "$ipv4_clean" "$ipv6_clean"
+
+  #add_result "primary" "$display_name" "$ipv4_result" "$ipv6_result"
 }
 
 process_custom_service() {
@@ -1579,12 +1582,13 @@ print_results() {
     *)
       print_table_group "custom" "Popular services"
       print_table_group "primary" "GeoIP services"
-      #printf "\n"
-      #print_table_group "cdn" "CDN services"
+	  print_legend
+	  printf "\n\n-----CDN-----\n"
+      print_table_group "cdn" "CDN services"
       ;;
   esac
   
-  print_legend
+
 }
 
 lookup_maxmind() {
@@ -1890,22 +1894,6 @@ lookup_tiktok() {
   process_json "$response" ".body.appProps.region"
 }
 
-lookup_cloudflare_cdn() {
-  local ip_version="$1"
-  local response iata location
-
-  response=$(make_request GET "https://www.cloudflare.com/cdn-cgi/trace" --ip-version "$ip_version")
-  while IFS='=' read -r key value; do
-    if [[ "$key" == "colo" ]]; then
-      iata="$value"
-      break
-    fi
-  done <<<"$response"
-
-  location=$(get_iata_location "$iata")
-  echo "$location ($iata)"
-}
-
 lookup_youtube_cdn() {
   local ip_version="$1"
   local response iata location
@@ -1920,7 +1908,7 @@ lookup_youtube_cdn() {
   fi
 
   location=$(get_iata_location "$iata")
-  echo "$location ($iata)"
+  echo "$location"
 }
 
 lookup_netflix_cdn() {
@@ -1985,7 +1973,7 @@ main() {
     *)
       run_service_group "primary"
       run_service_group "custom"
-      #run_service_group "cdn"
+      run_service_group "cdn"
       ;;
   esac
 
