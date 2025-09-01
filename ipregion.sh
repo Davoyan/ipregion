@@ -1583,8 +1583,8 @@ print_results() {
       print_table_group "custom" "Popular services"
       print_table_group "primary" "GeoIP services"
 	  print_legend
-	  printf "\n\n-----CDN-----\n"
-      print_table_group "cdn" "CDN services"
+	  #printf "\n\n-----CDN-----\n"
+      #print_table_group "cdn" "CDN services"
       ;;
   esac
   
