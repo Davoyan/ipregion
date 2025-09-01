@@ -3,6 +3,12 @@
 A bash script for determining your IP geolocation using various GeoIP services and popular websites.  
 This is a **fork** of the [original script](https://github.com/vernette/ipregion/), with a number of improvements and fixes.
 
+## Usage
+
+```bash
+bash <(wget -qO- https://raw.githubusercontent.com/Davoyan/ipregion/main/ipregion.sh)
+```
+
 ![image](https://i.imgur.com/xlztb0q.png)
 
 ## Features
@@ -40,21 +46,6 @@ The script outputs country codes in ISO 3166-1 alpha-2 format (e.g., RU, US, DE)
 In the **human-readable output**, the script also shows the **full country name** and **percentage distribution**.  
 
 For manual lookup of codes, you can use the official ISO website: [https://www.iso.org/obp/ui/#search/code/](https://www.iso.org/obp/ui/#search/code/)
-
-## Usage
-
-For local usage, download the script:
-
-```bash
-wget -O ipregion.sh https://raw.githubusercontent.com/Davoyan/ipregion/main/ipregion.sh
-chmod +x ipregion.sh
-```
-
-Or run directly from GitHub:
-
-```bash
-bash <(wget -qO- https://raw.githubusercontent.com/Davoyan/ipregion/main/ipregion.sh)
-```
 
 ### Common use cases
 
