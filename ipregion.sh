@@ -355,12 +355,14 @@ declare -A CUSTOM_SERVICES=(
   [SPOTIFY]="Spotify"
   [REDDIT]="Reddit"
   [REDDIT_GUEST_ACCESS]="Reddit (Guest Access)"
+  [AMAZON_PRIME]="Amazon Prime"
   [APPLE]="Apple"
   [STEAM]="Steam"
   [TIKTOK]="Tiktok"
   [YOUTUBE_CDN]="YouTube CDN"
   [OOKLA_SPEEDTEST]="Ookla Speedtest"
   [JETBRAINS]="JetBrains"
+  [BING]="Bing"
 )
 
 CUSTOM_SERVICES_ORDER=(
@@ -374,11 +376,13 @@ CUSTOM_SERVICES_ORDER=(
   "SPOTIFY"
   "REDDIT"
   "REDDIT_GUEST_ACCESS"
+  "AMAZON_PRIME"
   "APPLE"
   "STEAM"
   "TIKTOK"
   "OOKLA_SPEEDTEST"
   "JETBRAINS"
+  "BING"
 )
 
 declare -A CUSTOM_SERVICES_HANDLERS=(
@@ -392,6 +396,7 @@ declare -A CUSTOM_SERVICES_HANDLERS=(
   [SPOTIFY]="lookup_spotify"
   [REDDIT]="lookup_reddit"
   [REDDIT_GUEST_ACCESS]="lookup_reddit_guest_access"
+  [AMAZON_PRIME]="lookup_amazon_prime"
   [APPLE]="lookup_apple"
   [STEAM]="lookup_steam"
   [TIKTOK]="lookup_tiktok"
@@ -400,6 +405,7 @@ declare -A CUSTOM_SERVICES_HANDLERS=(
   [NETFLIX_CDN]="lookup_netflix_cdn"
   [OOKLA_SPEEDTEST]="lookup_ookla_speedtest"
   [JETBRAINS]="lookup_jetbrains"
+  [BING]="lookup_bing"
 )
 
 declare -A CDN_SERVICES=(
@@ -1884,6 +1890,74 @@ lookup_google_search_captcha() {
   fi
 
   print_value_or_colored "$is_captcha" "$color_name"
+}
+
+lookup_bing() {
+  local ip_version="$1"
+  local curl_ip_flag country
+  if [[ "$ip_version" == "4" ]]; then
+	  curl_ip_flag="-4"
+  elif [[ "$ip_version" == "6" ]]; then
+	  curl_ip_flag="-6"
+  else
+	  curl_ip_flag="-4"
+  fi
+
+  curl_args=()
+
+  if [[ -n "$PROXY_ADDR" ]]; then
+    curl_args+=(--proxy "socks5://$PROXY_ADDR")
+  fi
+
+  if [[ -n "$INTERFACE_NAME" ]]; then
+    curl_args+=(--interface "$INTERFACE_NAME")
+  fi
+	  
+  local tmpresult=$(timeout "$CURL_TIMEOUT" curl -sL $curl_ip_flag "${curl_args[@]}" "https://www.bing.com/search?q=cats" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+  
+  local isCN=$(echo "$tmpresult" | grep 'cn.bing.com')
+  local region=$(echo "$tmpresult" | grep -woP 'Region\s{0,}:\s{0,}"\K[^"]+')
+  
+  if [ -n "$isCN" ]; then
+    region='CN'
+  fi
+  
+  echo "$region"
+}
+
+lookup_amazon_prime() {
+  local ip_version="$1"
+  local curl_ip_flag country
+  if [[ "$ip_version" == "4" ]]; then
+	  curl_ip_flag="-4"
+  elif [[ "$ip_version" == "6" ]]; then
+	  curl_ip_flag="-6"
+  else
+	  curl_ip_flag="-4"
+  fi
+
+  curl_args=()
+
+  if [[ -n "$PROXY_ADDR" ]]; then
+    curl_args+=(--proxy "socks5://$PROXY_ADDR")
+  fi
+
+  if [[ -n "$INTERFACE_NAME" ]]; then
+    curl_args+=(--interface "$INTERFACE_NAME")
+  fi
+	  
+  local tmpresult=$(timeout "$CURL_TIMEOUT" curl -sL $curl_ip_flag "${curl_args[@]}" "https://www.primevideo.com" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+  
+  local isBlocked=$(echo "$tmpresult" | grep -i 'isServiceRestricted')
+  local region=$(echo "$tmpresult" | grep -woP '"currentTerritory":"\K[^"]+' | head -n 1)
+  
+  if [[ -z "$is_available" ]]; then
+    echo "$region"
+  else
+    is_available="No"
+    color_name="HEART"
+	print_value_or_colored "$is_available" "$color_name"
+  fi
 }
 
 lookup_apple() {
