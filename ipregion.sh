@@ -1923,6 +1923,7 @@ lookup_bing() {
     region='CN'
   fi
   
+  region="${region:0:2}"
   echo "$region"
 }
 
@@ -1953,6 +1954,7 @@ lookup_amazon_prime() {
   local region=$(echo "$tmpresult" | grep -woP '"currentTerritory":"\K[^"]+' | head -n 1)
   
   if [[ -z "$is_available" ]]; then
+    region="${region:0:2}"
     echo "$region"
   else
     is_available="No"
