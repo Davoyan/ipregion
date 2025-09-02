@@ -1186,7 +1186,9 @@ process_service() {
     display_name="$service"
   fi
 
-  echo "$display_name" >"$SPINNER_SERVICE_FILE"
+  if [[ -n "$SPINNER_SERVICE_FILE" ]]; then
+    echo "$display_name" >"$SPINNER_SERVICE_FILE"
+  fi
 
   if [[ "$custom" == true ]]; then
     process_custom_service "$service"
