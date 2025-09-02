@@ -314,6 +314,7 @@ declare -A PRIMARY_SERVICES=(
   [IPBASE_COM]="ipbase.com|api.ipbase.com|/v2/info?ip={ip}"
   [IPQUERY_IO]="ipquery.io|api.ipquery.io|/{ip}"
   [IP_SB]="ip.sb|api.ip.sb|/geoip/{ip}"
+  [2IP]="2ip.io|api.2ip.io"
 )
 
 PRIMARY_SERVICES_ORDER=(
@@ -332,11 +333,13 @@ PRIMARY_SERVICES_ORDER=(
   "IPBASE_COM"
   "IPQUERY_IO"
   "IP_SB"
+  "2IP"
 )
 
 declare -A PRIMARY_SERVICES_CUSTOM_HANDLERS=(
   [CLOUDFLARE]="lookup_cloudflare"
   [IPLOCATION_COM]="lookup_iplocation_com"
+  [2IP]="lookup_2ip"
 )
 
 declare -A SERVICE_HEADERS=(
@@ -1649,6 +1652,14 @@ lookup_iplocation_com() {
 
   response=$(make_request POST "https://iplocation.com" --ip-version "$ip_version" --user-agent "$USER_AGENT" --data "ip=$ip")
   process_json "$response" ".country_code"
+}
+
+lookup_2ip() {
+  local ip_version="$1"
+  local response ip
+
+  response=$(make_request GET "https://api.2ip.io" --ip-version "$ip_version" --data "ip=$ip")
+  process_json "$response" ".code"
 }
 
 get_country_code() {
