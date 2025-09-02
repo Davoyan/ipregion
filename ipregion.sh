@@ -876,13 +876,20 @@ get_asn() {
 
   log "$LOG_INFO" "Getting ASN info for IP $ip"
 
-  response=$(make_request GET "https://geoip.oxl.app/api/ip/$ip" --ip-version "$ip_version")
-  asn=$(process_json "$response" ".asn")
-  asn_name=$(process_json "$response" ".organization.name")
-  asn_name=${asn_name#null}
-  
+  response=$(make_request GET "https://ipinfo.check.place/$ip" --ip-version "$ip_version" 2>/dev/null)
+  asn=$(process_json "$response" ".ASN.AutonomousSystemNumber")
+  asn_name=$(process_json "$response" ".ASN.AutonomousSystemOrganization")
 
-  log "$LOG_INFO" "ASN info: AS$asn $asn_name"
+  if [[ -z "$asn" || "$asn" == "null" || -z "$asn_name" || "$asn_name" == "null" ]]; then
+    log "$LOG_INFO" "Primary source failed, trying backup source"
+    response=$(make_request GET "https://geoip.oxl.app/api/ip/$ip" --ip-version "$ip_version")
+    asn=$(process_json "$response" ".asn")
+    asn_name=$(process_json "$response" ".organization.name")
+    asn_name=${asn_name#null}
+    log "$LOG_INFO" "ASN info (backup source): AS$asn $asn_name"
+  else
+    log "$LOG_INFO" "ASN info (primary source): AS$asn $asn_name"
+  fi
 }
 
 get_iata_location() {
