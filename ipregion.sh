@@ -295,6 +295,7 @@ declare -A COUNTRY_NAMES=(
   [ZW]="Zimbabwe"
   [XK]="Kosovo"
   [EU]="European Union"
+  [WW]="Worldwide"
 )
 
 declare -A PRIMARY_SERVICES=(
