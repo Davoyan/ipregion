@@ -101,7 +101,7 @@ Options:
   -v, --verbose        Enable verbose logging
   -j, --json           Output results in JSON format
   -g, --group GROUP    Run only one group: 'primary', 'custom', 'cdn' or 'all' (default: all)
-  -t, --timeout SEC    Set curl request timeout in seconds (default: 10)
+  -t, --timeout SEC    Set curl request timeout in seconds (default: 6)
   -4, --ipv4           Test only IPv4
   -6, --ipv6           Test only IPv6
   -p, --proxy ADDR     Use SOCKS5 proxy (format: host:port)
