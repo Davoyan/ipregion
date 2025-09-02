@@ -9,7 +9,7 @@ This is a **fork** of the [original script](https://github.com/vernette/ipregion
 bash <(wget -qO- https://raw.githubusercontent.com/Davoyan/ipregion/main/ipregion.sh)
 ```
 
-![image](https://i.imgur.com/xlztb0q.png)
+![image](https://i.imgur.com/OGQ0bb3.png)
 
 ## Features
 
@@ -30,6 +30,7 @@ Compared to the original script, this fork includes:
 - Adjusted alignment in the output table
 - Separated **YouTube** and **Google** (rarely but can show different regions)
 - Correctly detects **Google China (CN) region**
+- Added Bing and Amazon Prime
 - CDN services removed from the default group (can be checked separately)
 - Added **country name decoding** and **percentage calculation** in human-readable output
 
