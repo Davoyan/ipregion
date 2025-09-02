@@ -2069,7 +2069,8 @@ main() {
   get_asn
 
   if [[ "$JSON_OUTPUT" != true && "$VERBOSE" != true ]]; then
-    trap spinner_stop EXIT INT TERM
+    # Ловим только Ctrl+C и TERM, при этом останавливаем спиннер и завершаем скрипт
+    trap 'spinner_stop; exit' INT TERM
     spinner_start
   fi
 
@@ -2092,7 +2093,7 @@ main() {
 
   if [[ "$JSON_OUTPUT" != true && "$VERBOSE" != true ]]; then
     spinner_stop
-    trap - EXIT INT TERM
+    trap - INT TERM
   fi
 
   print_results
