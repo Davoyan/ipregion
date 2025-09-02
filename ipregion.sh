@@ -1924,6 +1924,11 @@ lookup_bing() {
   fi
   
   region="${region:0:2}"
+  
+  if [[ "$region" == "WW" ]]; then
+    region=""
+  fi
+
   echo "$region"
 }
 
