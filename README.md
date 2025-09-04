@@ -4,15 +4,36 @@ A bash script for determining your IP geolocation using various GeoIP services a
 This is a **fork** of the [original script](https://github.com/vernette/ipregion/), with a number of improvements and fixes.
 
 ## Usage
-Run **directly** from GitHub:
+Run script:
+```bash
+bash <(wget -qO- ipregion.xyz)
+```
+Or run **directly** from GitHub:
 ```bash
 bash <(wget -qO- https://raw.githubusercontent.com/Davoyan/ipregion/main/ipregion.sh)
 ```
+
+
 Output example:
 
 ![image](https://i.imgur.com/OGQ0bb3.png)
 
-## Features
+## What's New in This Fork
+
+Compared to the original script, this fork includes several improvements and fixes:
+
+- **Improved IPv6 detection** — previously unreliable in some cases.  
+- **Fixed freezes** on certain services.  
+- **Adjusted output table alignment** for better readability.  
+- **Separated YouTube and Google checks** — sometimes show different regions.  
+- **Correct detection of Google China (CN) region**.  
+- **Added support for additional services**: 2ip.io, Bing, and Amazon Prime.  
+- **ASN detection using MaxMind database** — same as [IPQuality](https://github.com/xykt/IPQuality/).  
+- **CDN services removed from the default group** — can be checked separately if needed.  
+- **Enhanced human-readable output** with country name decoding and percentage calculations.  
+- **Fixed minor bugs**, e.g., inability to interrupt the script during execution.
+
+## Main features
 
 - Checks your IP geolocation using multiple public GeoIP APIs
 - Results from both "primary" GeoIP services and popular web services (YouTube, Netflix, Twitch, etc.)
@@ -21,19 +42,6 @@ Output example:
 - JSON output for automation and integration
 - Color-coded, easy-to-read table output
 - **Country names + percentage stats**: alongside ISO codes, shows country names and percentage distribution across services
-
-## Improvements in this fork
-
-Compared to the original script, this fork includes:
-
-- Fixed IPv6 detection (was unreliable in some cases)
-- Fixed freezes on certain services
-- Adjusted alignment in the output table
-- Separated **YouTube** and **Google** (rarely but can show different regions)
-- Correctly detects **Google China (CN) region**
-- Added Bing and Amazon Prime
-- CDN services removed from the default group (can be checked separately)
-- Added **country name decoding** and **percentage calculation** in human-readable output
 
 ## Dependencies
 
