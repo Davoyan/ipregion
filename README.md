@@ -6,10 +6,6 @@ This is a **fork** of the [original script](https://github.com/vernette/ipregion
 ## Usage
 Run script:
 ```bash
-bash <(wget -qO- ipregion.xyz)
-```
-Or run **directly** from GitHub:
-```bash
 bash <(wget -qO- https://raw.githubusercontent.com/Davoyan/ipregion/main/ipregion.sh)
 ```
 
