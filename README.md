@@ -16,7 +16,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/Davoyan/ipregion/main/ipregio
 
 Output example:
 
-![image](https://i.imgur.com/OGQ0bb3.png)
+![image](https://i.imgur.com/UJ1HqGJ.png)
 
 ## What's New in This Fork
 
