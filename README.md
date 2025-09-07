@@ -27,10 +27,11 @@ Compared to the original script, this fork includes several improvements and fix
 - **Adjusted output table alignment** for better readability.  
 - **Separated YouTube and Google checks** — sometimes show different regions.  
 - **Correct detection of Google China (CN) region**.  
-- **Added support for additional services**: 2ip.io, Bing, and Amazon Prime.  
+- **Added support for additional services**: 2ip.io, Youtube Music, Bing, and Amazon Prime.  
 - **ASN detection using MaxMind database** — same as [IPQuality](https://github.com/xykt/IPQuality/).  
 - **CDN services removed from the default group** — can be checked separately if needed.  
 - **Enhanced human-readable output** with country name decoding and percentage calculations.  
+- **Country names + percentage stats**: alongside ISO codes, shows country names and percentage distribution across services
 - **Fixed minor bugs**, e.g., inability to interrupt the script during execution.
 
 ## Main features
@@ -41,7 +42,6 @@ Compared to the original script, this fork includes several improvements and fix
 - SOCKS5 proxy and custom network interface support
 - JSON output for automation and integration
 - Color-coded, easy-to-read table output
-- **Country names + percentage stats**: alongside ISO codes, shows country names and percentage distribution across services
 
 ## Dependencies
 
@@ -129,8 +129,3 @@ Examples:
   ipregion.sh -j                    # Output result as JSON
   ipregion.sh -v                    # Enable verbose logging
 ```
-
-## Output
-
-- **Color-coded table**: Shows results for each service and protocol (IPv4/IPv6)
-- **JSON**: Use `--json` for machine-readable output
