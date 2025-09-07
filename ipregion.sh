@@ -353,6 +353,7 @@ declare -A CUSTOM_SERVICES=(
   [GOOGLE_SEARCH_CAPTCHA]="Google Search Captcha"
   [YOUTUBE]="YouTube"
   [YOUTUBE_PREMIUM]="YouTube Premium"
+  [YOUTUBE_MUSIC]="YouTube Music"
   [TWITCH]="Twitch"
   [CHATGPT]="ChatGPT"
   [NETFLIX]="Netflix"
@@ -374,6 +375,7 @@ CUSTOM_SERVICES_ORDER=(
   "GOOGLE_SEARCH_CAPTCHA"
   "YOUTUBE"
   "YOUTUBE_PREMIUM"
+  "YOUTUBE_MUSIC"
   "TWITCH"
   "CHATGPT"
   "NETFLIX"
@@ -394,6 +396,7 @@ declare -A CUSTOM_SERVICES_HANDLERS=(
   [GOOGLE_SEARCH_CAPTCHA]="lookup_google_search_captcha"
   [YOUTUBE]="lookup_youtube"
   [YOUTUBE_PREMIUM]="lookup_youtube_premium"
+  [YOUTUBE_MUSIC]="lookup_youtube_music"
   [TWITCH]="lookup_twitch"
   [CHATGPT]="lookup_chatgpt"
   [NETFLIX]="lookup_netflix"
@@ -1887,6 +1890,34 @@ lookup_youtube_premium() {
   print_value_or_colored "$is_available" "$color_name"
 }
 
+lookup_youtube_music() {
+  local ip_version="$1"
+  local response is_available
+
+  response=$(make_request GET "https://music.youtube.com/" \
+    --ip-version "$ip_version" \
+    --user-agent "$USER_AGENT" \
+    --header "Cookie: SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjUwNzMwLjA1X3AwGgJlbiACGgYIgPC_xAY" \
+    --header "Accept-Language: en-US,en;q=0.9")
+
+  if [[ -z "$response" ]]; then
+    echo ""
+    return
+  fi
+
+  is_available=$(grep -io "YouTube Music is not available in your area" <<<"$response")
+
+  if [[ -z "$is_available" ]]; then
+    is_available="Yes"
+    color_name="SERVICE"
+  else
+    is_available="No"
+    color_name="HEART"
+  fi
+
+  print_value_or_colored "$is_available" "$color_name"
+}
+
 lookup_google_search_captcha() {
   local ip_version="$1"
   local response is_captcha color_name
@@ -2077,18 +2108,18 @@ main() {
   fi
 
   case "$GROUPS_TO_SHOW" in
-    primary)
-      run_service_group "primary"
-      ;;
     custom)
       run_service_group "custom"
+      ;;
+    primary)
+      run_service_group "primary"
       ;;
     cdn)
       run_service_group "cdn"
       ;;
     *)
+	  run_service_group "custom"
       run_service_group "primary"
-      run_service_group "custom"
       run_service_group "cdn"
       ;;
   esac
