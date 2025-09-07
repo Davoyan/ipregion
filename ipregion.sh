@@ -358,6 +358,7 @@ declare -A CUSTOM_SERVICES=(
   [CHATGPT]="ChatGPT"
   [NETFLIX]="Netflix"
   [SPOTIFY]="Spotify"
+  [DEEZER]="Deezer"
   [REDDIT]="Reddit"
   [REDDIT_GUEST_ACCESS]="Reddit (Guest Access)"
   [AMAZON_PRIME]="Amazon Prime"
@@ -380,6 +381,7 @@ CUSTOM_SERVICES_ORDER=(
   "CHATGPT"
   "NETFLIX"
   "SPOTIFY"
+  "DEEZER"
   "REDDIT"
   "REDDIT_GUEST_ACCESS"
   "AMAZON_PRIME"
@@ -401,6 +403,7 @@ declare -A CUSTOM_SERVICES_HANDLERS=(
   [CHATGPT]="lookup_chatgpt"
   [NETFLIX]="lookup_netflix"
   [SPOTIFY]="lookup_spotify"
+  [DEEZER]="lookup_deezer"
   [REDDIT]="lookup_reddit"
   [REDDIT_GUEST_ACCESS]="lookup_reddit_guest_access"
   [AMAZON_PRIME]="lookup_amazon_prime"
@@ -1779,6 +1782,16 @@ lookup_spotify() {
 
   sed -n 's/.*"geoLocationCountryCode":"\([^"]*\)".*/\1/p' <<<"$response"
 }
+
+lookup_deezer() {
+  local ip_version="$1"
+  local response
+
+  response=$(make_request GET "https://www.deezer.com/en/offers" --ip-version "$ip_version")
+
+  echo "$response" | sed -n "s/.*'country': '\(.*\)'.*/\1/p"
+}
+
 
 lookup_reddit() {
   local ip_version="$1"
