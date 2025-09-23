@@ -5,8 +5,8 @@ DEPENDENCIES=("jq" "curl" "util-linux")
 USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 SPINNER_SERVICE_FILE=$(mktemp "${TMPDIR:-/tmp}/ipregion_spinner_XXXXXX")
 
-SPOTIFY_API_KEY=""
-SPOTIFY_CLIENT_ID=""
+SPOTIFY_API_KEY="142b583129b2df829de3656f9eb484e6"
+SPOTIFY_CLIENT_ID="9a8d2f0ce77a4e248bb71fefcb557637"
 
 VERBOSE=false
 JSON_OUTPUT=false
@@ -2189,13 +2189,6 @@ main() {
 
   install_dependencies
   check_doh
-  
-  ipregion_content=$(curl -4 -s https://raw.githubusercontent.com/vernette/ipregion/master/ipregion.sh)
-  SPOTIFY_API_KEY=$(echo "$ipregion_content" | grep '^SPOTIFY_API_KEY=' | cut -d'"' -f2)
-  SPOTIFY_CLIENT_ID=$(echo "$ipregion_content" | grep '^SPOTIFY_CLIENT_ID=' | cut -d'"' -f2)
-  : "${SPOTIFY_API_KEY:=142b583129b2df829de3656f9eb484e6}"
-  : "${SPOTIFY_CLIENT_ID:=9a8d2f0ce77a4e248bb71fefcb557637}"
-
   
   check_ip_support 4
   IPV4_SUPPORTED=$?
