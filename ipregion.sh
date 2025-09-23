@@ -858,7 +858,6 @@ get_external_ip() {
       fi
     done
 
-    # Fallback, если совпадений нет
     if [[ -z "$EXTERNAL_IPV6" ]]; then
       for ip in "${!counts[@]}"; do
         EXTERNAL_IPV6="$ip"
@@ -1044,7 +1043,7 @@ make_request() {
 
   curl_args+=("$url")
 
-  response_with_code=$(timeout "$CURL_TIMEOUT"s curl "${curl_args[@]}")
+  response_with_code=$(timeout "$CURL_TIMEOUT"s curl "${curl_args[@]}" $SELECTED_DOH_URL)
   local exit_status=$?
 
   if [[ $exit_status -eq 124 ]]; then
@@ -1681,7 +1680,7 @@ get_country_code() {
     local country="$1"
     local json
 
-    json=$(curl --max-time 5 -s "https://restcountries.com/v3.1/all?fields=name,cca2")
+    json=$(curl $SELECTED_DOH_URL --max-time 5 -s "https://restcountries.com/v3.1/all?fields=name,cca2")
     if [[ -z "$json" ]] || ! grep -q '"name"' <<<"$json"; then
         echo ""
         return
@@ -1730,7 +1729,7 @@ lookup_google() {
 	  curl_args+=(--interface "$INTERFACE_NAME")
 	fi
 	
-    country=$(timeout "$CURL_TIMEOUT" curl $curl_ip_flag -sL "${curl_args[@]}" 'https://play.google.com/'   -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'   -H 'accept-language: en-US;q=0.9'   -H 'priority: u=0, i'   -H 'sec-ch-ua: "Chromium";v="131", "Not_A Brand";v="24", "Google Chrome";v="131"'   -H 'sec-ch-ua-mobile: ?0'   -H 'sec-ch-ua-platform: "Windows"'   -H 'sec-fetch-dest: document'   -H 'sec-fetch-mode: navigate'   -H 'sec-fetch-site: none'   -H 'sec-fetch-user: ?1'   -H 'upgrade-insecure-requests: 1' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' | grep -oP '<div class="yVZQTb">\K[^<(]+')
+    country=$(timeout "$CURL_TIMEOUT" curl $SELECTED_DOH_URL $curl_ip_flag -sL "${curl_args[@]}" 'https://play.google.com/'   -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'   -H 'accept-language: en-US;q=0.9'   -H 'priority: u=0, i'   -H 'sec-ch-ua: "Chromium";v="131", "Not_A Brand";v="24", "Google Chrome";v="131"'   -H 'sec-ch-ua-mobile: ?0'   -H 'sec-ch-ua-platform: "Windows"'   -H 'sec-fetch-dest: document'   -H 'sec-fetch-mode: navigate'   -H 'sec-fetch-site: none'   -H 'sec-fetch-user: ?1'   -H 'upgrade-insecure-requests: 1' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' | grep -oP '<div class="yVZQTb">\K[^<(]+')
 
 	country=$(echo "$country" | xargs)  # убираем пробелы
 	if [[ -n "$country" ]]; then
@@ -1978,7 +1977,7 @@ lookup_bing() {
     curl_args+=(--interface "$INTERFACE_NAME")
   fi
 	  
-  local tmpresult=$(timeout "$CURL_TIMEOUT" curl -sL $curl_ip_flag "${curl_args[@]}" "https://www.bing.com/search?q=cats" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+  local tmpresult=$(timeout "$CURL_TIMEOUT" curl $SELECTED_DOH_URL -sL $curl_ip_flag "${curl_args[@]}" "https://www.bing.com/search?q=cats" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
   
   local isCN=$(echo "$tmpresult" | grep 'cn.bing.com')
   local region=$(echo "$tmpresult" | grep -woP 'Region\s{0,}:\s{0,}"\K[^"]+')
@@ -2017,7 +2016,7 @@ lookup_amazon_prime() {
     curl_args+=(--interface "$INTERFACE_NAME")
   fi
 	  
-  local tmpresult=$(timeout "$CURL_TIMEOUT" curl -sL $curl_ip_flag "${curl_args[@]}" "https://www.primevideo.com" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+  local tmpresult=$(timeout "$CURL_TIMEOUT" curl $SELECTED_DOH_URL -sL $curl_ip_flag "${curl_args[@]}" "https://www.primevideo.com" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
   
   local isBlocked=$(echo "$tmpresult" | grep -i 'isServiceRestricted')
   local region=$(echo "$tmpresult" | grep -woP '"currentTerritory":"\K[^"]+' | head -n 1)
@@ -2100,11 +2099,39 @@ lookup_jetbrains() {
   process_json "$response" ".code"
 }
 
+SELECTED_DOH_URL=""
+
+check_doh() {
+    local urls=(
+        "https://1.1.1.1/dns-query"
+        "https://8.8.8.8/dns-query"
+        "https://9.9.9.9/dns-query"
+        "https://208.67.222.222/dns-query"
+        "https://94.140.14.140/dns-query"
+    )
+
+    local test_domain="www.google.com"
+
+    for url in "${urls[@]}"; do
+        response=$(curl -s --max-time 2 \
+            -H "accept: application/dns-json" \
+            "$url?name=$test_domain&type=A")
+
+        if echo "$response" | grep -q '"Answer"'; then
+            SELECTED_DOH_URL="--doh-url $url"
+            return 0
+        fi
+    done
+
+    SELECTED_DOH_URL=""
+}
+
 main() {
   parse_arguments "$@"
 
   install_dependencies
-
+  check_doh
+  
   check_ip_support 4
   IPV4_SUPPORTED=$?
 
@@ -2114,8 +2141,8 @@ main() {
   get_external_ip
   get_asn
 
+
   if [[ "$JSON_OUTPUT" != true && "$VERBOSE" != true ]]; then
-    # Ловим только Ctrl+C и TERM, при этом останавливаем спиннер и завершаем скрипт
     trap 'spinner_stop; exit' INT TERM
     spinner_start
   fi
