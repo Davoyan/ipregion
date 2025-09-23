@@ -2190,7 +2190,7 @@ main() {
   install_dependencies
   check_doh
   
-  ipregion_content=$(curl -4 -s https://raw.gith111ubusercontent.com/vernette/ipregion/master/ipregion.sh)
+  ipregion_content=$(curl -4 -s https://raw.githubusercontent.com/vernette/ipregion/master/ipregion.sh)
   SPOTIFY_API_KEY=$(echo "$ipregion_content" | grep '^SPOTIFY_API_KEY=' | cut -d'"' -f2)
   SPOTIFY_CLIENT_ID=$(echo "$ipregion_content" | grep '^SPOTIFY_CLIENT_ID=' | cut -d'"' -f2)
   : "${SPOTIFY_API_KEY:=142b583129b2df829de3656f9eb484e6}"
