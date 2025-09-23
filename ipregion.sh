@@ -5,6 +5,9 @@ DEPENDENCIES=("jq" "curl" "util-linux")
 USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 SPINNER_SERVICE_FILE=$(mktemp "${TMPDIR:-/tmp}/ipregion_spinner_XXXXXX")
 
+SPOTIFY_API_KEY=""
+SPOTIFY_CLIENT_ID=""
+
 VERBOSE=false
 JSON_OUTPUT=false
 GROUPS_TO_SHOW="all"
@@ -36,6 +39,8 @@ COLOR_RESET="0"
 LOG_INFO="INFO"
 LOG_WARN="WARNING"
 LOG_ERROR="ERROR"
+
+SELECTED_DOH_URL=""
 
 declare -A DEPENDENCY_COMMANDS=(
   [jq]="jq"
@@ -313,7 +318,8 @@ declare -A PRIMARY_SERVICES=(
   [IPAPI_IS]="ipapi.is|api.ipapi.is|/?q={ip}"
   [IPBASE_COM]="ipbase.com|api.ipbase.com|/v2/info?ip={ip}"
   [IPQUERY_IO]="ipquery.io|api.ipquery.io|/{ip}"
-  [IP_SB]="ip.sb|api.ip.sb|/geoip/{ip}"
+  [IPWHO_IS]="ipwho.is|ipwho.is|/{ip}"
+  [IPAPI_COM]="ip-api.com|demo.ip-api.com|/json/{ip}?fields=countryCode"
   [2IP]="2ip.io|api.2ip.io"
 )
 
@@ -332,7 +338,8 @@ PRIMARY_SERVICES_ORDER=(
   "IPAPI_IS"
   "IPBASE_COM"
   "IPQUERY_IO"
-  "IP_SB"
+  "IPWHO_IS"
+  "IPAPI_COM"
   "2IP"
 )
 
@@ -345,7 +352,7 @@ declare -A PRIMARY_SERVICES_CUSTOM_HANDLERS=(
 declare -A SERVICE_HEADERS=(
   [IPREGISTRY]="Origin: https://ipregistry.co"
   [MAXMIND]="Referer: https://www.maxmind.com"
-  [IP_SB]="User-Agent: ${USER_AGENT}"
+  [IPAPI_COM]="Origin: https://ip-api.com"
 )
 
 declare -A CUSTOM_SERVICES=(
@@ -358,17 +365,19 @@ declare -A CUSTOM_SERVICES=(
   [CHATGPT]="ChatGPT"
   [NETFLIX]="Netflix"
   [SPOTIFY]="Spotify"
+  [SPOTIFY_SIGNUP]="Spotify Signup"
   [DEEZER]="Deezer"
   [REDDIT]="Reddit"
   [REDDIT_GUEST_ACCESS]="Reddit (Guest Access)"
   [AMAZON_PRIME]="Amazon Prime"
   [APPLE]="Apple"
   [STEAM]="Steam"
+  [PLAYSTATION]="PlayStation"
   [TIKTOK]="Tiktok"
   [YOUTUBE_CDN]="YouTube CDN"
   [OOKLA_SPEEDTEST]="Ookla Speedtest"
   [JETBRAINS]="JetBrains"
-  [BING]="Bing"
+  [BING]="Microsoft (Bing)"
 )
 
 CUSTOM_SERVICES_ORDER=(
@@ -381,12 +390,14 @@ CUSTOM_SERVICES_ORDER=(
   "CHATGPT"
   "NETFLIX"
   "SPOTIFY"
+  "SPOTIFY_SIGNUP"
   "DEEZER"
   "REDDIT"
   "REDDIT_GUEST_ACCESS"
   "AMAZON_PRIME"
   "APPLE"
   "STEAM"
+  "PLAYSTATION"
   "TIKTOK"
   "OOKLA_SPEEDTEST"
   "JETBRAINS"
@@ -403,12 +414,14 @@ declare -A CUSTOM_SERVICES_HANDLERS=(
   [CHATGPT]="lookup_chatgpt"
   [NETFLIX]="lookup_netflix"
   [SPOTIFY]="lookup_spotify"
+  [SPOTIFY_SIGNUP]="lookup_spotify_signup"
   [DEEZER]="lookup_deezer"
   [REDDIT]="lookup_reddit"
   [REDDIT_GUEST_ACCESS]="lookup_reddit_guest_access"
   [AMAZON_PRIME]="lookup_amazon_prime"
   [APPLE]="lookup_apple"
   [STEAM]="lookup_steam"
+  [PLAYSTATION]="lookup_playstation"
   [TIKTOK]="lookup_tiktok"
   [CLOUDFLARE_CDN]="lookup_cloudflare_cdn"
   [YOUTUBE_CDN]="lookup_youtube_cdn"
@@ -1168,8 +1181,11 @@ process_response() {
     IPQUERY_IO)
       jq_filter='.location.country_code'
       ;;
-    IP_SB)
+    IPWHO_IS)
       jq_filter='.country_code'
+      ;;
+    IPAPI_COM)
+      jq_filter='.countryCode'
       ;;
     *)
       echo "$response"
@@ -1989,15 +2005,39 @@ lookup_bing() {
   region="${region:0:2}"
   
   if [[ "$region" == "WW" ]]; then
-    region=""
+	tmpresult=$(timeout "$CURL_TIMEOUT" curl $SELECTED_DOH_URL -s "https://login.live.com" $curl_ip_flag "${curl_args[@]}" --user-agent "$USER_AGENT")
+	region=$(echo "$tmpresult" | grep -oP '"sRequestCountry":"\K[^"]*' | head -n1)
   fi
 
   echo "$region"
 }
 
+lookup_spotify_signup() {
+
+  local ip_version="$1"
+  local response status is_country_launched available color_name
+
+  response=$(timeout "$CURL_TIMEOUT" curl $SELECTED_DOH_URL -s "https://spclient.wg.spotify.com/signup/public/v1/account/?validate=1&key=$SPOTIFY_API_KEY" $curl_ip_flag "${curl_args[@]}" \
+    --header "X-Client-Id: $SPOTIFY_CLIENT_ID" \
+	--user-agent "$USER_AGENT")
+
+  status=$(process_json "$response" ".status")
+  is_country_launched=$(process_json "$response" ".is_country_launched")
+
+  if [[ "$status" == "120" || "$status" == "320" || "$is_country_launched" == "false" ]]; then
+    available="No"
+    color_name="HEART"
+  else
+    available="Yes"
+    color_name="SERVICE"
+  fi
+
+  print_value_or_colored "$available" "$color_name"
+}
+
 lookup_amazon_prime() {
   local ip_version="$1"
-  local curl_ip_flag country
+  local curl_ip_flag
   if [[ "$ip_version" == "4" ]]; then
 	  curl_ip_flag="-4"
   elif [[ "$ip_version" == "6" ]]; then
@@ -2099,7 +2139,25 @@ lookup_jetbrains() {
   process_json "$response" ".code"
 }
 
-SELECTED_DOH_URL=""
+lookup_playstation() {
+  local ip_version="$1"
+  local curl_ip_flag
+  if [[ "$ip_version" == "6" ]]; then
+    curl_ip_flag="-6"
+  else
+    curl_ip_flag="-4"
+  fi
+
+  local curl_args=()
+  [[ -n "$PROXY_ADDR" ]] && curl_args+=(--proxy "socks5://$PROXY_ADDR")
+  [[ -n "$INTERFACE_NAME" ]] && curl_args+=(--interface "$INTERFACE_NAME")
+
+  local tmpresult
+  tmpresult=$(timeout "$CURL_TIMEOUT" curl -sI "https://www.playstation.com" $curl_ip_flag "${curl_args[@]}" \
+    --user-agent "$USER_AGENT")
+
+  echo "$tmpresult" | grep -i 'Set-Cookie: country=' | head -n1 | sed 's/.*country=\([A-Z]*\).*/\1/'
+}
 
 check_doh() {
     local urls=(
@@ -2131,6 +2189,13 @@ main() {
 
   install_dependencies
   check_doh
+  
+  ipregion_content=$(curl -4 -s https://raw.gith111ubusercontent.com/vernette/ipregion/master/ipregion.sh)
+  SPOTIFY_API_KEY=$(echo "$ipregion_content" | grep '^SPOTIFY_API_KEY=' | cut -d'"' -f2)
+  SPOTIFY_CLIENT_ID=$(echo "$ipregion_content" | grep '^SPOTIFY_CLIENT_ID=' | cut -d'"' -f2)
+  : "${SPOTIFY_API_KEY:=142b583129b2df829de3656f9eb484e6}"
+  : "${SPOTIFY_CLIENT_ID:=9a8d2f0ce77a4e248bb71fefcb557637}"
+
   
   check_ip_support 4
   IPV4_SUPPORTED=$?
