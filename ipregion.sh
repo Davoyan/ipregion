@@ -310,7 +310,6 @@ declare -A PRIMARY_SERVICES=(
   [IPREGISTRY]="ipregistry.co|api.ipregistry.co|/{ip}?hostname=true&key=sb69ksjcajfs4c"
   [IPAPI_CO]="ipapi.co|ipapi.co|/{ip}/json"
   [CLOUDFLARE]="cloudflare.com|www.cloudflare.com|/cdn-cgi/trace"
-  [IFCONFIG_CO]="ifconfig.co|ifconfig.co|/country-iso?ip={ip}|plain"
   [IPLOCATION_COM]="iplocation.com|iplocation.com"
   [COUNTRY_IS]="country.is|api.country.is|/{ip}"
   [GEOAPIFY_COM]="geoapify.com|api.geoapify.com|/v1/ipinfo?&ip={ip}&apiKey=b8568cb9afc64fad861a69edbddb2658"
@@ -330,7 +329,6 @@ PRIMARY_SERVICES_ORDER=(
   "CLOUDFLARE"
   "IPREGISTRY"
   "IPAPI_CO"
-  "IFCONFIG_CO"
   "IPLOCATION_COM"
   "COUNTRY_IS"
   "GEOAPIFY_COM"
@@ -457,7 +455,6 @@ IDENTITY_SERVICES=(
   "ident.me"
   "ifconfig.me"
   "api64.ipify.org"
-  "ifconfig.co"
   "ifconfig.me"
 )
 
@@ -811,7 +808,6 @@ IDENTITY_SERVICES=(
   "ident.me"
   "ifconfig.me"
   "api64.ipify.org"
-  "ifconfig.co"
   "ifconfig.me"
 )
 
@@ -1664,10 +1660,6 @@ lookup_cloudflare() {
       break
     fi
   done <<<"$response"
-}
-
-lookup_ifconfig_co() {
-  process_service "IFCONFIG_CO"
 }
 
 lookup_iplocation_com() {
