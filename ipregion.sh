@@ -1325,10 +1325,22 @@ run_service_group() {
       display_name="${CDN_SERVICES[$service_name]}"
 
       if [[ -n "$handler_func" ]]; then
-        echo "$display_name" >"$SPINNER_SERVICE_FILE"
-        result=$("$handler_func" 4)
-        add_result "cdn" "$display_name" "$result" ""
-      fi
+		  echo "$display_name" >"$SPINNER_SERVICE_FILE"
+
+		  ipv4_result=""
+		  ipv6_result=""
+
+		  if [[ "$IPV6_ONLY" != true ]]; then
+			ipv4_result=$("$handler_func" 4)
+		  fi
+
+		  if [[ "$IPV4_ONLY" != true ]] && [[ "$IPV6_SUPPORTED" -eq 0 && -n "$EXTERNAL_IPV6" ]]; then
+			ipv6_result=$("$handler_func" 6)
+		  fi
+
+		  add_result "cdn" "$display_name" "$ipv4_result" "$ipv6_result"
+		fi
+
     else
       process_service "$service_name"
     fi
@@ -2069,11 +2081,24 @@ lookup_apple() {
 
 lookup_steam() {
   local ip_version="$1"
-  local response
+  local curl_ip_flag
+  if [[ "$ip_version" == "6" ]]; then
+    curl_ip_flag="-6"
+  else
+    curl_ip_flag="-4"
+  fi
 
-  response=$(make_request GET "https://store.steampowered.com" --ip-version "$ip_version")
-  sed -n 's/.*"countrycode":"\([^"]*\)".*/\1/p' <<<"$response"
+  local curl_args=()
+  [[ -n "$PROXY_ADDR" ]] && curl_args+=(--proxy "socks5://$PROXY_ADDR")
+  [[ -n "$INTERFACE_NAME" ]] && curl_args+=(--interface "$INTERFACE_NAME")
+
+  local tmpresult
+  tmpresult=$(timeout "$CURL_TIMEOUT" curl $SELECTED_DOH_URL -sI "https://store.steampowered.com" $curl_ip_flag "${curl_args[@]}" \
+    --user-agent "$USER_AGENT")
+
+  echo "$tmpresult" | grep -oP 'steamCountry=\K[^%;]*'
 }
+
 
 lookup_tiktok() {
   local ip_version="$1"
@@ -2144,7 +2169,7 @@ lookup_playstation() {
   [[ -n "$INTERFACE_NAME" ]] && curl_args+=(--interface "$INTERFACE_NAME")
 
   local tmpresult
-  tmpresult=$(timeout "$CURL_TIMEOUT" curl -sI "https://www.playstation.com" $curl_ip_flag "${curl_args[@]}" \
+  tmpresult=$(timeout "$CURL_TIMEOUT" curl $SELECTED_DOH_URL -sI "https://www.playstation.com" $curl_ip_flag "${curl_args[@]}" \
     --user-agent "$USER_AGENT")
 
   echo "$tmpresult" | grep -i 'Set-Cookie: country=' | head -n1 | sed 's/.*country=\([A-Z]*\).*/\1/'
