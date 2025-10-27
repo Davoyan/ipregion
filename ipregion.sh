@@ -2176,28 +2176,42 @@ lookup_playstation() {
 }
 
 check_doh() {
-    local urls=(
-        "https://1.1.1.1/dns-query"
-        "https://8.8.8.8/dns-query"
-        "https://9.9.9.9/dns-query"
-        "https://208.67.222.222/dns-query"
-        "https://94.140.14.140/dns-query"
+    local test_domain="${1:-www.google.com}"
+
+    local resolvers=(
+        "Cloudflare|https://1.1.1.1/dns-query|https://1.1.1.1/dns-query"
+        "Quad9|https://9.9.9.9/dns-query|https://9.9.9.9/dns-query"
+        "OpenDNS|https://208.67.222.222/dns-query|https://208.67.222.222/dns-query"
+        "AdGuard|https://94.140.14.140/dns-query|https://94.140.14.140/dns-query"
     )
 
-    local test_domain="www.google.com"
+    local curl_opts=(-sS --max-time 5 --connect-timeout 2 --retry 1 --retry-connrefused \
+                     -H "accept: application/dns-json")
 
-    for url in "${urls[@]}"; do
-        response=$(curl -s --max-time 2 \
-            -H "accept: application/dns-json" \
-            "$url?name=$test_domain&type=A")
+    local entry name doh_url test_url url response
 
-        if echo "$response" | grep -q '"Answer"'; then
-            SELECTED_DOH_URL="--doh-url $url"
-            return 0
+    for entry in "${resolvers[@]}"; do
+        IFS="|" read -r name doh_url test_url <<<"$entry"
+        url="${test_url}?name=${test_domain}&type=A"
+
+        response="$(curl "${curl_opts[@]}" "$url" 2>/dev/null)"
+
+        if command -v jq >/dev/null 2>&1; then
+            if printf '%s' "$response" | jq -e '.Status == 0 and (.Answer | length > 0)' >/dev/null 2>&1; then
+                SELECTED_DOH_URL="--doh-url ${doh_url}"
+                return 0
+            fi
+        else
+            if echo "$response" | grep -q '"Status"[[:space:]]*:[[:space:]]*0' && \
+               echo "$response" | grep -q '"Answer"'; then
+                SELECTED_DOH_URL="--doh-url ${doh_url}"
+                return 0
+            fi
         fi
     done
 
     SELECTED_DOH_URL=""
+    return 1
 }
 
 main() {
