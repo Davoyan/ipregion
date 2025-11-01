@@ -1863,7 +1863,8 @@ lookup_youtube() {
         curl_ip_flag="-4"
     fi
 	
-	result=$(timeout "$CURL_TIMEOUT" curl $SELECTED_DOH_URL -s $curl_ip_flag "https://www.youtube.com/sw.js_data" | grep -oP '\["en","\K[A-Z]{2}(?=")')
+	result=$(make_request GET "https://www.youtube.com" --ip-version "$ip_version" --user-agent "$USER_AGENT" \
+        | grep -oP '"countryCode":"\K\w+')
 	
     if [[ -z "$result" || "$result" == "null" || "$result" == "n/a" || ${#result} -gt 7 ]]; then
         for entry in "${ARR_CUSTOM[@]}"; do
