@@ -1796,7 +1796,7 @@ lookup_spotify() {
   local ip_version="$1"
   local response
 
-  response=$(make_request GET "https://accounts.spotify.com/en/login" --ip-version "$ip_version")
+  response=$(make_request GET "https://accounts.spotify.com/status" --ip-version "$ip_version")
 
   sed -n 's/.*"geoLocationCountryCode":"\([^"]*\)".*/\1/p' <<<"$response"
 }
